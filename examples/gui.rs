@@ -111,6 +111,7 @@ mod example {
         disassembler: DisassemblySource,
 
         target_name: ImString,
+        args: ImString,
         backtrace_type: BacktraceType,
         backtrace_selection: usize,
     }
@@ -167,12 +168,14 @@ mod example {
 
     fn render_gui(ui: &imgui::Ui, context: &mut HeadcrabContext) {
         context.target_name.reserve(100); // FIXME workaround for imgui-rs#366
+        context.args.reserve(1000); // FIXME workaround for imgui-rs#366
         imgui::Window::new(im_str!("launch"))
             .position([5.0, 5.0], Condition::FirstUseEver)
             .size([390.0, 90.0], Condition::FirstUseEver)
             .build(ui, || {
                 ui.input_text(im_str!("target"), &mut context.target_name)
                     .build();
+                ui.input_text(im_str!("args"), &mut context.args).build();
                 if let Some(remote) = &context.remote {
                     if ui.small_button(im_str!("kill")) {
                         remote.kill().unwrap();
@@ -199,7 +202,12 @@ mod example {
                     }
                 } else {
                     if ui.small_button(im_str!("launch")) {
-                        let cmd = Command::new(context.target_name.to_str());
+                        let mut cmd = Command::new(context.target_name.to_str());
+                        let args = context.args.to_str();
+                        if args.len() > 0 {
+                            let args: Vec<&str> = args.split(" ").collect();
+                            cmd.args(&args);
+                        }
                         context.set_remote(LinuxTarget::launch(cmd).unwrap().0);
                     }
                 }
